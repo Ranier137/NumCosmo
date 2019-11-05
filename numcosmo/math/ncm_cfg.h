@@ -40,6 +40,8 @@
 
 G_BEGIN_DECLS
 
+typedef void (*NcmCfgLoggerFunc) (const gchar *msg);
+
 void ncm_cfg_init (void);
 void ncm_cfg_init_full_ptr (gint *argc, gchar ***argv);
 gchar **ncm_cfg_init_full (gint argc, gchar **argv);
@@ -61,6 +63,10 @@ gboolean ncm_cfg_save_fftw_wisdom (const gchar *filename, ...);
 gboolean ncm_cfg_exists (const gchar *filename, ...);
 
 void ncm_cfg_set_logfile (gchar *filename);
+void ncm_cfg_set_logstream (FILE *stream);
+void ncm_cfg_set_log_handler (NcmCfgLoggerFunc logger);
+void ncm_cfg_set_error_log_handler (NcmCfgLoggerFunc logger);
+
 void ncm_cfg_logfile (gboolean on);
 void ncm_cfg_logfile_flush (gboolean on);
 void ncm_cfg_logfile_flush_now (void);
@@ -123,72 +129,7 @@ G_STMT_START { \
 #define mpz_clears ncm_mpz_clears
 #endif /* mpz_inits */
 
-/* Workaround on G_DECLARE_ macros */
-#if !GLIB_CHECK_VERSION(2,44,0)
-#define G_DECLARE_FINAL_TYPE(ModuleObjName, module_obj_name, MODULE, OBJ_NAME, ParentName) \
-  GType module_obj_name##_get_type (void);                                                               \
-  G_GNUC_BEGIN_IGNORE_DEPRECATIONS                                                                       \
-  typedef struct _##ModuleObjName ModuleObjName;                                                         \
-  typedef struct { ParentName##Class parent_class; } ModuleObjName##Class;                               \
-                                                                                                         \
-  static inline ModuleObjName * MODULE##_##OBJ_NAME (gpointer ptr) {                                     \
-    return G_TYPE_CHECK_INSTANCE_CAST (ptr, module_obj_name##_get_type (), ModuleObjName); }             \
-  static inline gboolean MODULE##_IS_##OBJ_NAME (gpointer ptr) {                                         \
-    return G_TYPE_CHECK_INSTANCE_TYPE (ptr, module_obj_name##_get_type ()); }                            \
-  G_GNUC_END_IGNORE_DEPRECATIONS
-
-#define G_DECLARE_DERIVABLE_TYPE(ModuleObjName, module_obj_name, MODULE, OBJ_NAME, ParentName) \
-  GType module_obj_name##_get_type (void);                                                               \
-  G_GNUC_BEGIN_IGNORE_DEPRECATIONS                                                                       \
-  typedef struct _##ModuleObjName ModuleObjName;                                                         \
-  typedef struct _##ModuleObjName##Class ModuleObjName##Class;                                           \
-  struct _##ModuleObjName { ParentName parent_instance; };                                               \
-                                                                                                         \
-  static inline ModuleObjName * MODULE##_##OBJ_NAME (gpointer ptr) {                                     \
-    return G_TYPE_CHECK_INSTANCE_CAST (ptr, module_obj_name##_get_type (), ModuleObjName); }             \
-  static inline ModuleObjName##Class * MODULE##_##OBJ_NAME##_CLASS (gpointer ptr) {                      \
-    return G_TYPE_CHECK_CLASS_CAST (ptr, module_obj_name##_get_type (), ModuleObjName##Class); }         \
-  static inline gboolean MODULE##_IS_##OBJ_NAME (gpointer ptr) {                                         \
-    return G_TYPE_CHECK_INSTANCE_TYPE (ptr, module_obj_name##_get_type ()); }                            \
-  static inline gboolean MODULE##_IS_##OBJ_NAME##_CLASS (gpointer ptr) {                                 \
-    return G_TYPE_CHECK_CLASS_TYPE (ptr, module_obj_name##_get_type ()); }                               \
-  static inline ModuleObjName##Class * MODULE##_##OBJ_NAME##_GET_CLASS (gpointer ptr) {                  \
-    return G_TYPE_INSTANCE_GET_CLASS (ptr, module_obj_name##_get_type (), ModuleObjName##Class); }       \
-  G_GNUC_END_IGNORE_DEPRECATIONS
-
-#define G_DECLARE_INTERFACE(ModuleObjName, module_obj_name, MODULE, OBJ_NAME, PrerequisiteName) \
-  GType module_obj_name##_get_type (void);                                                                 \
-  G_GNUC_BEGIN_IGNORE_DEPRECATIONS                                                                         \
-  typedef struct _##ModuleObjName ModuleObjName;                                                           \
-  typedef struct _##ModuleObjName##Interface ModuleObjName##Interface;                                     \
-                                                                                                           \
-  static inline ModuleObjName * MODULE##_##OBJ_NAME (gpointer ptr) {                                       \
-    return G_TYPE_CHECK_INSTANCE_CAST (ptr, module_obj_name##_get_type (), ModuleObjName); }               \
-  static inline gboolean MODULE##_IS_##OBJ_NAME (gpointer ptr) {                                           \
-    return G_TYPE_CHECK_INSTANCE_TYPE (ptr, module_obj_name##_get_type ()); }                              \
-  static inline ModuleObjName##Interface * MODULE##_##OBJ_NAME##_GET_IFACE (gpointer ptr) {                \
-    return G_TYPE_INSTANCE_GET_INTERFACE (ptr, module_obj_name##_get_type (), ModuleObjName##Interface); } \
-  G_GNUC_END_IGNORE_DEPRECATIONS
-
-#endif /* !GLIB_CHECK_VERSION(2,44,0) */
-
-/* Workaround on g_clear_pointer */
-#if !GLIB_CHECK_VERSION(2,34,0)
-#define g_clear_pointer(ptr,freefunc) \
-G_STMT_START { \
-  if (*(ptr) != NULL) \
-  { \
-    (freefunc) (*(ptr)); \
-    *(ptr) = NULL; \
-  } \
-} G_STMT_END
-#endif /* Glib version < 2.34 */
-
-/* Workaround on g_clear_object. */
-#if !GLIB_CHECK_VERSION(2,28,0)
-#define g_clear_object(obj) g_clear_pointer(ptr,g_object_unref)
-#endif /* Glib version < 2.28 */
-
+#ifndef NUMCOSMO_GIR_SCAN
 #define NCM_FITS_ERROR(status) \
 G_STMT_START { \
   if (status) \
@@ -198,6 +139,7 @@ G_STMT_START { \
     g_error ("FITS: %s", errormsg); \
   } \
 } G_STMT_END
+#endif /* NUMCOSMO_GIR_SCAN */
 
 G_END_DECLS
 
